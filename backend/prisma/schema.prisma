@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  GUEST
+}
+
+model Role {
+  id    Int      @id @default(autoincrement())
+  name  RoleName @unique
+  users User[]
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  passwordHash String
+  fullName     String
+  roleId       Int
+  role         Role          @relation(fields: [roleId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  purchases    PurchaseOrder[]
+  salesOrders  SalesOrder[]
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  sku         String   @unique
+  name        String
+  description String?
+  price       Float
+  createdAt   DateTime @default(now())
+  inventory   Inventory[]
+  salesItems  SalesItem[]
+  orderItems  PurchaseOrderItem[]
+}
+
+model Warehouse {
+  id        Int         @id @default(autoincrement())
+  name      String
+  location  String
+  stock     Inventory[]
+  createdAt DateTime    @default(now())
+}
+
+model Inventory {
+  id          Int       @id @default(autoincrement())
+  productId   Int
+  warehouseId Int
+  quantity    Int
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productId, warehouseId])
+}
+
+model PurchaseOrder {
+  id         Int                 @id @default(autoincrement())
+  supplier   String
+  status     String
+  orderedBy  Int
+  createdAt  DateTime            @default(now())
+  user       User                @relation(fields: [orderedBy], references: [id])
+  items      PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId Int
+  productId       Int
+  quantity        Int
+  unitCost        Float
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  product         Product       @relation(fields: [productId], references: [id])
+}
+
+model SalesOrder {
+  id         Int        @id @default(autoincrement())
+  customer   String
+  status     String
+  soldBy     Int
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [soldBy], references: [id])
+  items      SalesItem[]
+  invoice    Invoice?
+}
+
+model SalesItem {
+  id           Int        @id @default(autoincrement())
+  salesOrderId Int
+  productId    Int
+  quantity     Int
+  unitPrice    Float
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id])
+  product      Product    @relation(fields: [productId], references: [id])
+}
+
+model Invoice {
+  id           Int       @id @default(autoincrement())
+  salesOrderId Int       @unique
+  totalAmount  Float
+  issuedAt     DateTime  @default(now())
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id])
+  payments     Payment[]
+}
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  invoiceId   Int
+  amount      Float
+  method      String
+  paidAt      DateTime @default(now())
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+}
