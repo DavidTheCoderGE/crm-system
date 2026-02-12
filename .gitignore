@@ -1,0 +1,7 @@
+node_modules
+.env
+coverage
+dist
+*.log
+backend/prisma/dev.db
+frontend/dist
